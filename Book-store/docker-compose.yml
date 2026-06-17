@@ -1,0 +1,24 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: bookstore-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: bookstore
+    ports:
+      - "5433:5432"
+    volumes:
+      - bookstore_pgdata:/var/lib/postgresql/data
+
+  ollama:
+    image: ollama/ollama
+    container_name: bookstore-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - bookstore_ollama:/root/.ollama
+
+volumes:
+  bookstore_pgdata:
+  bookstore_ollama:
