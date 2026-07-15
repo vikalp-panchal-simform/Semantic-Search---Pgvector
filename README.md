@@ -87,7 +87,7 @@ Expected output example: `10.0.x`
 ## Step 3 — Open the project
 
 ```powershell
-cd "c:\Users\vikalp\Desktop\Simform Demo-blog\Semantic Search - Pgvector\Book-store"
+cd Book-store
 ```
 
 Restore NuGet packages:
