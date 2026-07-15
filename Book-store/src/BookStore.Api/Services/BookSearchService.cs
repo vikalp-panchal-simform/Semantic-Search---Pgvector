@@ -15,46 +15,19 @@ public class BookSearchService(BookStoreDbContext db, IEmbeddingService embeddin
         }
 
         var queryVector = await embeddingService.GenerateQueryEmbeddingAsync(query, cancellationToken);
-        var queryValues = queryVector.ToArray();
 
-        var books = await db.Books
+        return await db.Books
             .Where(b => b.Embedding != null)
             .OrderBy(b => b.Embedding!.CosineDistance(queryVector))
             .Take(limit)
-            .ToListAsync(cancellationToken);
-
-        return books.Select(book =>
-        {
-            var bookValues = book.Embedding!.ToArray();
-            return new BookSearchResult
+            .Select(b => new BookSearchResult
             {
-                Id = book.Id,
-                Title = book.Title,
-                Description = book.Description,
-                Author = book.Author,
-                Similarity = CosineSimilarity(queryValues, bookValues)
-            };
-        }).ToList();
-    }
-
-    private static double CosineSimilarity(float[] left, float[] right)
-    {
-        double dot = 0;
-        double normLeft = 0;
-        double normRight = 0;
-
-        for (var i = 0; i < left.Length; i++)
-        {
-            dot += left[i] * right[i];
-            normLeft += left[i] * left[i];
-            normRight += right[i] * right[i];
-        }
-
-        if (normLeft == 0 || normRight == 0)
-        {
-            return 0;
-        }
-
-        return dot / (Math.Sqrt(normLeft) * Math.Sqrt(normRight));
+                Id = b.Id,
+                Title = b.Title,
+                Description = b.Description,
+                Author = b.Author,
+                Similarity = 1 - b.Embedding!.CosineDistance(queryVector)
+            })
+            .ToListAsync(cancellationToken);
     }
 }

@@ -2,7 +2,6 @@ using BookStore.Api.Data;
 using BookStore.Api.Models;
 using BookStore.Api.Models.Dtos;
 using Microsoft.EntityFrameworkCore;
-using Pgvector.EntityFrameworkCore;
 
 namespace BookStore.Api.Services;
 
