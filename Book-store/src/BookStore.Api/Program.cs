@@ -2,6 +2,7 @@ using BookStore.Api.Data;
 using BookStore.Api.Endpoints;
 using BookStore.Api.Infrastructure;
 using BookStore.Api.Services;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
 using OllamaSharp;
@@ -40,6 +41,13 @@ builder.Services.AddScoped<IEmbeddingService, EmbeddingService>();
 builder.Services.AddScoped<BookService>();
 builder.Services.AddScoped<BookSearchService>();
 
+builder.Services.AddHealthChecks()
+    .AddNpgSql(connectionString, name: "postgresql", tags: ["ready", "db"])
+    .AddUrlGroup(
+        new Uri(new Uri(ollamaEndpoint.TrimEnd('/') + "/"), "api/tags"),
+        name: "ollama",
+        tags: ["ready", "ai"]);
+
 var app = builder.Build();
 
 app.UseExceptionHandler();
@@ -61,5 +69,10 @@ if (app.Environment.IsDevelopment())
 //}
 
 app.MapBookEndpoints();
+
+app.MapHealthChecks("/health", new HealthCheckOptions
+{
+    ResponseWriter = HealthCheckResponseWriter.WriteJsonAsync
+});
 
 app.Run();

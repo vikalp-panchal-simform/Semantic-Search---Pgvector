@@ -307,7 +307,8 @@ Book-store/
         ├── Exceptions/
         │   └── DependencyUnavailableException.cs
         ├── Infrastructure/
-        │   └── GlobalExceptionHandler.cs
+        │   ├── GlobalExceptionHandler.cs
+        │   └── HealthCheckResponseWriter.cs
         ├── Models/
         │   ├── Book.cs
         │   └── Dtos/
@@ -328,6 +329,9 @@ Book-store/
 |--------|-------|-------------|
 | `GET` | `/api/books/search?q={query}&limit=5` | Semantic search — returns books ranked by vector similarity |
 | `POST` | `/api/books` | Create a book with auto-generated embedding |
+| `GET` | `/health` | Health checks for PostgreSQL and Ollama |
+
+**`GET /health`** returns JSON with overall status plus per-check results (`postgresql`, `ollama`). HTTP **200** when healthy, **503** when a dependency fails.
 
 **Search response** includes `similarity` (0–1, higher = more relevant).
 
