@@ -304,6 +304,11 @@ Book-store/
         ├── Data/
         │   ├── BookStoreDbContext.cs
         │   └── BookSeeder.cs
+        ├── Exceptions/
+        │   └── DependencyUnavailableException.cs
+        ├── Infrastructure/
+        │   ├── GlobalExceptionHandler.cs
+        │   └── HealthCheckResponseWriter.cs
         ├── Models/
         │   ├── Book.cs
         │   └── Dtos/
@@ -324,6 +329,9 @@ Book-store/
 |--------|-------|-------------|
 | `GET` | `/api/books/search?q={query}&limit=5` | Semantic search — returns books ranked by vector similarity |
 | `POST` | `/api/books` | Create a book with auto-generated embedding |
+| `GET` | `/health` | Health checks for PostgreSQL and Ollama |
+
+**`GET /health`** returns JSON with overall status plus per-check results (`postgresql`, `ollama`). HTTP **200** when healthy, **503** when a dependency fails.
 
 **Search response** includes `similarity` (0–1, higher = more relevant).
 
@@ -336,6 +344,48 @@ Book-store/
   "author": "string (required)"
 }
 ```
+
+### Error responses (ProblemDetails)
+
+Unhandled failures return RFC 7807 **ProblemDetails** JSON via a global `IExceptionHandler` (see `Infrastructure/GlobalExceptionHandler.cs`).
+
+| Scenario | Status | Example `title` |
+|----------|--------|-----------------|
+| Missing `q` / invalid create body | `400` | Invalid search query / Invalid book payload |
+| Ollama unreachable or timed out | `503` | Ollama unavailable |
+| PostgreSQL unreachable | `503` | PostgreSQL unavailable |
+| Unexpected failure | `500` | An unexpected error occurred |
+
+Example when Postgres is down:
+
+```json
+{
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.6.4",
+  "title": "PostgreSQL unavailable",
+  "status": 503,
+  "detail": "Could not reach PostgreSQL. Confirm the bookstore-postgres container is running on port 5433.",
+  "instance": "GET /api/books/search",
+  "traceId": "00-..."
+}
+```
+
+### Cancellation token propagation
+
+Search and create pass ASP.NET Core’s request `CancellationToken` through the full call chain:
+
+```
+Endpoint → BookSearchService / BookService
+        → EmbeddingService (Ollama)
+        → EF Core (PostgreSQL)
+```
+
+That way, if the client disconnects or the request is aborted:
+
+- Ollama embedding work can stop early
+- Database queries/`SaveChanges` can stop early
+- The app does not treat client cancel as “Ollama unavailable” — `EmbeddingService` rethrows `OperationCanceledException` when the token is canceled, and `GlobalExceptionHandler` skips writing a ProblemDetails body for aborted requests
+
+This is a small pattern with a big payoff for I/O-heavy APIs (embeddings + DB).
 
 ---
 

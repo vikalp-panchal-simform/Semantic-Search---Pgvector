@@ -1,6 +1,8 @@
 using BookStore.Api.Data;
 using BookStore.Api.Endpoints;
+using BookStore.Api.Infrastructure;
 using BookStore.Api.Services;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
 using OllamaSharp;
@@ -10,6 +12,16 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+builder.Services.AddProblemDetails(options =>
+{
+    options.CustomizeProblemDetails = context =>
+    {
+        context.ProblemDetails.Extensions["traceId"] =
+            context.HttpContext.TraceIdentifier;
+    };
+});
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 var connectionString = builder.Configuration.GetConnectionString("Default")
     ?? throw new InvalidOperationException("Connection string 'Default' is not configured.");
@@ -29,7 +41,17 @@ builder.Services.AddScoped<IEmbeddingService, EmbeddingService>();
 builder.Services.AddScoped<BookService>();
 builder.Services.AddScoped<BookSearchService>();
 
+builder.Services.AddHealthChecks()
+    .AddNpgSql(connectionString, name: "postgresql", tags: ["ready", "db"])
+    .AddUrlGroup(
+        new Uri(new Uri(ollamaEndpoint.TrimEnd('/') + "/"), "api/tags"),
+        name: "ollama",
+        tags: ["ready", "ai"]);
+
 var app = builder.Build();
+
+app.UseExceptionHandler();
+app.UseStatusCodePages();
 
 if (app.Environment.IsDevelopment())
 {
@@ -47,5 +69,10 @@ if (app.Environment.IsDevelopment())
 //}
 
 app.MapBookEndpoints();
+
+app.MapHealthChecks("/health", new HealthCheckOptions
+{
+    ResponseWriter = HealthCheckResponseWriter.WriteJsonAsync
+});
 
 app.Run();

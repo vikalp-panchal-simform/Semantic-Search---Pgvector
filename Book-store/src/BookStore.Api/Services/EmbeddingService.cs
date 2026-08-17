@@ -1,3 +1,4 @@
+using BookStore.Api.Exceptions;
 using Microsoft.Extensions.AI;
 using Pgvector;
 
@@ -16,10 +17,21 @@ public class EmbeddingService(IEmbeddingGenerator<string, Embedding<float>> gene
 
     private async Task<Vector> GenerateVectorAsync(string text, CancellationToken cancellationToken)
     {
-        var embeddings = await generator.GenerateAsync([text], options: null, cancellationToken);
-        var embedding = embeddings.FirstOrDefault()
-            ?? throw new InvalidOperationException("Ollama returned no embedding.");
-
-        return new Vector(embedding.Vector.ToArray());
+        try
+        {
+            var embedding = await generator.GenerateVectorAsync(text, cancellationToken: cancellationToken);
+            return new Vector(embedding.ToArray());
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or IOException)
+        {
+            throw new DependencyUnavailableException(
+                "Ollama",
+                "Could not reach Ollama for embedding generation. Confirm the bookstore-ollama container is running and the all-minilm model is pulled.",
+                ex);
+        }
     }
 }

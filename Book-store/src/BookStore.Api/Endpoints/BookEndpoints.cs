@@ -17,7 +17,10 @@ public static class BookEndpoints
         {
             if (string.IsNullOrWhiteSpace(q))
             {
-                return Results.BadRequest(new { error = "Query parameter 'q' is required." });
+                return Results.Problem(
+                    title: "Invalid search query",
+                    detail: "Query parameter 'q' is required.",
+                    statusCode: StatusCodes.Status400BadRequest);
             }
 
             var take = Math.Clamp(limit ?? 5, 1, 20);
@@ -36,7 +39,10 @@ public static class BookEndpoints
                 || string.IsNullOrWhiteSpace(request.Description)
                 || string.IsNullOrWhiteSpace(request.Author))
             {
-                return Results.BadRequest(new { error = "Title, description, and author are required." });
+                return Results.Problem(
+                    title: "Invalid book payload",
+                    detail: "Title, description, and author are required.",
+                    statusCode: StatusCodes.Status400BadRequest);
             }
 
             var book = await bookService.CreateAsync(request, cancellationToken);
