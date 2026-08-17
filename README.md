@@ -369,6 +369,24 @@ Example when Postgres is down:
 }
 ```
 
+### Cancellation token propagation
+
+Search and create pass ASP.NET Core’s request `CancellationToken` through the full call chain:
+
+```
+Endpoint → BookSearchService / BookService
+        → EmbeddingService (Ollama)
+        → EF Core (PostgreSQL)
+```
+
+That way, if the client disconnects or the request is aborted:
+
+- Ollama embedding work can stop early
+- Database queries/`SaveChanges` can stop early
+- The app does not treat client cancel as “Ollama unavailable” — `EmbeddingService` rethrows `OperationCanceledException` when the token is canceled, and `GlobalExceptionHandler` skips writing a ProblemDetails body for aborted requests
+
+This is a small pattern with a big payoff for I/O-heavy APIs (embeddings + DB).
+
 ---
 
 ## Tech stack
