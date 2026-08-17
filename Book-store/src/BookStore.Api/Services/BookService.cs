@@ -9,17 +9,21 @@ public class BookService(BookStoreDbContext db, IEmbeddingService embeddingServi
 {
     public async Task<BookResponse> CreateAsync(CreateBookRequest request, CancellationToken cancellationToken = default)
     {
+        var title = request.Title.Trim();
+        var description = request.Description.Trim();
+        var author = request.Author.Trim();
+
         var embedding = await embeddingService.GenerateBookEmbeddingAsync(
-            request.Title,
-            request.Description,
-            request.Author,
+            title,
+            description,
+            author,
             cancellationToken);
 
         var book = new Book
         {
-            Title = request.Title.Trim(),
-            Description = request.Description.Trim(),
-            Author = request.Author.Trim(),
+            Title = title,
+            Description = description,
+            Author = author,
             Embedding = embedding,
             CreatedAt = DateTime.UtcNow
         };

@@ -304,6 +304,10 @@ Book-store/
         ├── Data/
         │   ├── BookStoreDbContext.cs
         │   └── BookSeeder.cs
+        ├── Exceptions/
+        │   └── DependencyUnavailableException.cs
+        ├── Infrastructure/
+        │   └── GlobalExceptionHandler.cs
         ├── Models/
         │   ├── Book.cs
         │   └── Dtos/
@@ -334,6 +338,30 @@ Book-store/
   "title": "string (required)",
   "description": "string (required)",
   "author": "string (required)"
+}
+```
+
+### Error responses (ProblemDetails)
+
+Unhandled failures return RFC 7807 **ProblemDetails** JSON via a global `IExceptionHandler` (see `Infrastructure/GlobalExceptionHandler.cs`).
+
+| Scenario | Status | Example `title` |
+|----------|--------|-----------------|
+| Missing `q` / invalid create body | `400` | Invalid search query / Invalid book payload |
+| Ollama unreachable or timed out | `503` | Ollama unavailable |
+| PostgreSQL unreachable | `503` | PostgreSQL unavailable |
+| Unexpected failure | `500` | An unexpected error occurred |
+
+Example when Postgres is down:
+
+```json
+{
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.6.4",
+  "title": "PostgreSQL unavailable",
+  "status": 503,
+  "detail": "Could not reach PostgreSQL. Confirm the bookstore-postgres container is running on port 5433.",
+  "instance": "GET /api/books/search",
+  "traceId": "00-..."
 }
 ```
 

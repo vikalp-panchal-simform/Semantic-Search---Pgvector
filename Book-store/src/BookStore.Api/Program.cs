@@ -1,5 +1,6 @@
 using BookStore.Api.Data;
 using BookStore.Api.Endpoints;
+using BookStore.Api.Infrastructure;
 using BookStore.Api.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
@@ -10,6 +11,16 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+builder.Services.AddProblemDetails(options =>
+{
+    options.CustomizeProblemDetails = context =>
+    {
+        context.ProblemDetails.Extensions["traceId"] =
+            context.HttpContext.TraceIdentifier;
+    };
+});
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 var connectionString = builder.Configuration.GetConnectionString("Default")
     ?? throw new InvalidOperationException("Connection string 'Default' is not configured.");
@@ -30,6 +41,9 @@ builder.Services.AddScoped<BookService>();
 builder.Services.AddScoped<BookSearchService>();
 
 var app = builder.Build();
+
+app.UseExceptionHandler();
+app.UseStatusCodePages();
 
 if (app.Environment.IsDevelopment())
 {
