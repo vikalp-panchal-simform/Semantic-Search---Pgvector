@@ -19,11 +19,8 @@ public class EmbeddingService(IEmbeddingGenerator<string, Embedding<float>> gene
     {
         try
         {
-            var embeddings = await generator.GenerateAsync([text], options: null, cancellationToken);
-            var embedding = embeddings.FirstOrDefault()
-                ?? throw new InvalidOperationException("Ollama returned no embedding.");
-
-            return new Vector(embedding.Vector.ToArray());
+            var embedding = await generator.GenerateVectorAsync(text, cancellationToken: cancellationToken);
+            return new Vector(embedding.ToArray());
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {

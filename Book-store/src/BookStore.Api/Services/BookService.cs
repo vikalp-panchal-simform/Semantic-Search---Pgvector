@@ -1,7 +1,6 @@
 using BookStore.Api.Data;
 using BookStore.Api.Models;
 using BookStore.Api.Models.Dtos;
-using Microsoft.EntityFrameworkCore;
 
 namespace BookStore.Api.Services;
 
@@ -25,6 +24,7 @@ public class BookService(BookStoreDbContext db, IEmbeddingService embeddingServi
             Description = description,
             Author = author,
             Embedding = embedding,
+            // Use DateTimeOffset.UtcNow in production to represent an unambiguous point in time.
             CreatedAt = DateTime.UtcNow
         };
 
